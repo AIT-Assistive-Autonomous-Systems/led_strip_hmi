@@ -1,0 +1,40 @@
+# ROS2 build and install directories
+/build/
+/install/
+/log/
+
+# Python compiled files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Test and coverage reports
+htmlcov/
+.coverage
+*.cover
+*.log
+.cache/
+.pytest_cache/
+
+# Package-specific
+*.egg-info/
+dist/
+build/

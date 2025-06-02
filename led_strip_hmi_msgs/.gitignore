@@ -1,0 +1,25 @@
+# Ignore build and install directories
+/build/
+/install/
+
+# Ignore log files
+/log/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore ROS2 specific files
+.colcon/
+ros2_ws/
+
+# Ignore temporary files
+*.swp
+*.swo
+*.tmp
+*.bak
+
+# Ignore hidden system files
+.DS_Store
+Thumbs.db

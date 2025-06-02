@@ -1,0 +1,32 @@
+<package format="3">
+  <name>led_strip_hmi_projector</name>
+  <version>0.1.0</version>
+  <description>
+    Projector node and utilities to project 3D detections (e.g., vision_msgs/Detection3DArray or sensor_msgs/LaserScan)
+    onto a configurable virtual LED-strip layout. Publishes LED-strip configuration, projection indices, and debug images.
+  </description>
+  <maintainer email="marco.wallner@ait.ac.at">Marco Wallner</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <depend>rclpy</depend>
+  <depend>vision_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>cv_bridge</depend>
+  <depend>image_transport</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>led_strip_hmi_msgs</depend>
+  <depend>led_strip_hmi_common</depend>
+
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>pytest</test_depend>
+  <test_depend>launch_testing</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

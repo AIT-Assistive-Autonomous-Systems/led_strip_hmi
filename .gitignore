@@ -1,0 +1,33 @@
+# ROS2 build and install directories
+/build/
+/install/
+/log/
+
+# Python cache files
+**/__pycache__/
+**/*.py[cod]
+
+# Virtual environment
+/venv/
+/.env/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Git-specific files
+*.orig
+*.rej
+
+# ROS2 package-specific files
+**/colcon.meta
+**/package.xml~
+**/*.pyc
