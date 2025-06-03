@@ -1,6 +1,7 @@
-from setuptools import setup, find_packages
 import glob
 import os
+
+from setuptools import find_packages, setup
 
 package_name = 'led_strip_hmi_visualization'
 config_files = glob.glob(os.path.join('config', '*.yaml'))
@@ -31,7 +32,6 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
     ],
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'strip_visualizer = led_strip_hmi_visualization.strip_visualizer:main',
@@ -39,8 +39,10 @@ setup(
     },
     data_files=[
         # ament index marker
-        ('share/ament_index/resource_index/packages',
-            ['ament_index/resource_index/packages/led_strip_hmi_visualization']),
+        (
+            'share/ament_index/resource_index/packages',
+            ['ament_index/resource_index/packages/led_strip_hmi_visualization'],
+        ),
         # package.xml
         ('share/led_strip_hmi_visualization', ['package.xml']),
         # config files
@@ -48,4 +50,5 @@ setup(
         # launch files
         ('share/led_strip_hmi_visualization/launch', launch_files),
     ],
+    tests_require=['pytest', 'pytest-flake8', 'pytest-pep257'],
 )

@@ -32,23 +32,25 @@ def transform_point(
         timeout (Duration): How long to wait for the necessary transform to become available.
         logger (Optional[Node]): Optional ROS node to log warnings on failure.
 
-    Returns:
-        Optional[Point]: The transformed Point in `target_frame`, 
+    Returns
+    -------
+        Optional[Point]: The transformed Point in `target_frame`,
                          or None if the transform lookup or application fails.
+
     """
     try:
         t = tf_buffer.lookup_transform(
             target_frame,
             point_stamped.header.frame_id,
             point_stamped.header.stamp,
-            timeout
+            timeout,
         )
         transformed_stamped = do_transform_point(point_stamped, t)
         return transformed_stamped.point
     except Exception as exc:
         if logger:
             logger.warn(
-                f"TF transform failed from {point_stamped.header.frame_id} "
-                f"to {target_frame}: {exc}"
+                f'TF transform failed from {point_stamped.header.frame_id} '
+                f'to {target_frame}: {exc}'
             )
         return None

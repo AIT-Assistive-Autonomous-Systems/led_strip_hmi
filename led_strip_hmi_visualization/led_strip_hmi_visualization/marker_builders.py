@@ -1,21 +1,30 @@
 # marker_builders.py
 
-from rclpy.duration import Duration
-from visualization_msgs.msg import MarkerArray
-from std_msgs.msg import Header
-import numpy as np
+from led_strip_hmi_msgs.msg import LEDStripProjectionInfoArray
 
-from led_strip_hmi_msgs.msg import LEDStripProjectionInfoArray, LEDStripProjectionInfo
-from .marker_utils import make_line_marker, make_sphere_marker
-from .geometry_utils import interpolate_polyline
 
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 from matplotlib import cm
 
 
+import numpy as np
+
+
+from rclpy.duration import Duration
+
+
+from std_msgs.msg import Header
+
+
+from visualization_msgs.msg import MarkerArray
+
+
+from .geometry_utils import interpolate_polyline
+from .marker_utils import make_line_marker, make_sphere_marker
+
+
 def build_static_markers(
-    cfg,               # ProjectorConfig
-    stamp,             # builtin_interfaces.msg.Time
+    cfg,  # ProjectorConfig
+    stamp,  # builtin_interfaces.msg.Time
 ) -> MarkerArray:
     """
     Build markers for static visualization: strip outlines and grey LEDs.
@@ -33,6 +42,7 @@ def build_static_markers(
     -------
     MarkerArray
         Collection of line and sphere markers representing the static strips.
+
     """
     m_arr = MarkerArray()
     header = Header(frame_id=cfg.strip_frame, stamp=stamp)
@@ -43,25 +53,26 @@ def build_static_markers(
         # outline
         gid += 1
         m_arr.markers.append(
-            make_line_marker(
-                gid, f"{name}_line", strip.polygon, header
-            )
+            make_line_marker(gid, f'{name}_line', strip.polygon, header)
         )
 
-    for pos, diam in zip(cfg.virtual_strip.leds_xy, cfg.virtual_strip.leds_size):
+    for pos, diam in zip(cfg.virtual_strip.leds_xy,
+                         cfg.virtual_strip.leds_size):
         gid += 1
         m_arr.markers.append(
             make_sphere_marker(
-                gid, f"{name}_led2", pos, diam, header
-            )
-        )
+                gid,
+                f'{name}_led2',
+                pos,
+                diam,
+                header))
     return m_arr
 
 
 def build_dynamic_markers(
-    cfg,                 # ProjectorConfig
+    cfg,  # ProjectorConfig
     msg: LEDStripProjectionInfoArray,
-    stamp,               # builtin_interfaces.msg.Time
+    stamp,  # builtin_interfaces.msg.Time
 ) -> tuple[MarkerArray, MarkerArray, MarkerArray]:
     """
     Build markers for dynamic visualization: continuous highlights and discrete LEDs.
@@ -79,6 +90,7 @@ def build_dynamic_markers(
     -------
     highlight_arr, discrete_arr : tuple of MarkerArray
         First array contains continuous strip highlights; second contains discrete LED highlights.
+
     """
     highlight_arr = MarkerArray()
     discrete_arr = MarkerArray()
@@ -90,13 +102,14 @@ def build_dynamic_markers(
 
     # Define color tuples as floats
     colors = {
-        'peak':  (1.0, 0.0, 0.0, 1.0),
+        'peak': (1.0, 0.0, 0.0, 1.0),
         'start': (0.0, 0.0, 1.0, 1.0),
-        'stop':  (0.0, 1.0, 0.0, 1.0),
+        'stop': (0.0, 1.0, 0.0, 1.0),
     }
 
     projection_infos = [
-        entry for entry in msg.projection_infos if entry.distance is not None]
+        entry for entry in msg.projection_infos if entry.distance is not None
+    ]
     projection_infos.sort(key=lambda entry: entry.distance, reverse=True)
 
     # continuous highlights along the virtual strip
@@ -136,7 +149,7 @@ def build_dynamic_markers(
             discrete_arr.markers.append(
                 make_sphere_marker(
                     d_gid,
-                    f"{strip_name}_discrete",
+                    f'{strip_name}_discrete',
                     pos,
                     diam,
                     header,
@@ -156,8 +169,9 @@ def build_dynamic_markers(
     def gaussian(x, mean, std_dev):
         if std_dev < 1e-4:
             return np.ones_like(x)
-        gauss = (1 / (std_dev * np.sqrt(2 * np.pi))) * \
-            np.exp(-0.5 * ((x - mean) / std_dev) ** 2)
+        gauss = (1 / (std_dev * np.sqrt(2 * np.pi))) * np.exp(
+            -0.5 * ((x - mean) / std_dev) ** 2
+        )
         return gauss / np.max(gauss)
 
     # discrete highlights on actual LEDs
@@ -171,7 +185,6 @@ def build_dynamic_markers(
         start = np.clip(start, 0, 1.0)
         stop = np.clip(stop, 0.0, 1.0)
 
-        #! TODO closed loop support
         dleft = max(abs(entry.peak - start), min_length)
         dright = max(abs(stop - entry.peak), min_length)
 
@@ -179,23 +192,23 @@ def build_dynamic_markers(
         ipeak = np.searchsorted(leds_ratio, entry.peak)
         iright = np.searchsorted(leds_ratio, stop)
 
-        ileft = np.clip(ileft, 0, len(leds_rgba)-1)
-        ipeak = np.clip(ipeak, 0, len(leds_rgba)-1)
-        iright = np.clip(iright, 0, len(leds_rgba)-1)
+        ileft = np.clip(ileft, 0, len(leds_rgba) - 1)
+        ipeak = np.clip(ipeak, 0, len(leds_rgba) - 1)
+        iright = np.clip(iright, 0, len(leds_rgba) - 1)
 
-        dratio = (entry.distance-cfg.min_d)/(cfg.max_d-cfg.min_d)
+        dratio = (entry.distance - cfg.min_d) / (cfg.max_d - cfg.min_d)
         dratio = np.clip(dratio, 0, 1)
         color = np.array(colormap(dratio))
 
-        def circular_distance(p, c, l):
-            return min((p - c) % l, (c - p) % l)
+        def circular_distance(point1, point2, length):
+            return min((point1 - point2) % length, (point2 - point1) % length)
 
         def set_leds(leds_rgba, color, alpha, start, stop):
             # left wrap
             nalpha = 0
             if start > stop:
                 leds_rgba[start:, :] = color
-                nalpha = len(leds_rgba)-start
+                nalpha = len(leds_rgba) - start
                 leds_rgba[start:, 3] = alpha[:nalpha]
                 start = 0
 
@@ -204,14 +217,14 @@ def build_dynamic_markers(
 
         nleft = circular_distance(ipeak, ileft, len(leds_rgba))
         if nleft > 1:
-            xl = np.linspace(start, entry.peak, nleft+1, endpoint=True)
-            gl = gaussian(xl, entry.peak, dleft/4)[:nleft]
+            xl = np.linspace(start, entry.peak, nleft + 1, endpoint=True)
+            gl = gaussian(xl, entry.peak, dleft / 4)[:nleft]
             set_leds(leds_rgba, color, gl, ileft, ipeak)
 
         nright = circular_distance(ipeak, iright, len(leds_rgba)) + 1
         xr = np.linspace(entry.peak, stop, nright, endpoint=True)
-        gr = gaussian(xr, entry.peak, dright/4)
-        set_leds(leds_rgba, color, gr, ipeak, iright+1)
+        gr = gaussian(xr, entry.peak, dright / 4)
+        set_leds(leds_rgba, color, gr, ipeak, iright + 1)
 
     leds_rgba = np.clip(leds_rgba, 0.0, 1.0)
 
@@ -220,7 +233,7 @@ def build_dynamic_markers(
         leds_arr.markers.append(
             make_sphere_marker(
                 d_gid,
-                f"leds_discrete",
+                'leds_discrete',
                 pos,
                 diam,
                 header,

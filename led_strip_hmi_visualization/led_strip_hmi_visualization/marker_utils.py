@@ -1,9 +1,10 @@
 # marker_utils.py
 
-from typing import Tuple, Any, Sequence
-from visualization_msgs.msg import Marker
-from std_msgs.msg import Header
+from typing import Any, Sequence, Tuple
+
 from geometry_msgs.msg import Point
+from std_msgs.msg import Header
+from visualization_msgs.msg import Marker
 
 
 def make_line_marker(
@@ -31,6 +32,7 @@ def make_line_marker(
     -------
     Marker
         Configured LINE_STRIP marker with points filled.
+
     """
     m = Marker(**kwargs, action=Marker.ADD, type=Marker.LINE_STRIP)
     m.header = header
@@ -41,7 +43,8 @@ def make_line_marker(
     m.color.g = 0.8
     m.color.b = 1.0
     m.color.a = 1.0
-    m.points = [Point(x=float(x), y=float(y), z=float(z)) for x, y, z in points]
+    m.points = [Point(x=float(x), y=float(y), z=float(z))
+                for x, y, z in points]
     return m
 
 
@@ -76,6 +79,7 @@ def make_sphere_marker(
     -------
     Marker
         Configured SPHERE marker.
+
     """
     m = Marker(**kwargs, action=Marker.ADD, type=Marker.SPHERE)
     m.header = header

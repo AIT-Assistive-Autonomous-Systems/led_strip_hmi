@@ -7,14 +7,14 @@ and validate configuration parameters for the LED strip HMI projector and visual
 
 from __future__ import annotations
 
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, Union
 
 import numpy as np
 
+from .config_utils import read_yaml, validate_keys
 from .virtual_strip import VirtualStrip
-from .config_utils import read_yaml, validate_keys, ConfigError
 
 
 @dataclass
@@ -52,7 +52,9 @@ class ProjectorConfig:
         Pixel size of the square debug image canvas.
     center_px : int
         Center pixel index (img_size // 2).
+
     """
+
     raw_cfg: Dict[str, Any]
     strips: Dict[str, Any]
     strip_frame: str
@@ -69,10 +71,7 @@ class ProjectorConfig:
     center_px: int
 
     @classmethod
-    def load_from_yaml(
-        cls,
-        path: Union[str, Path]
-    ) -> ProjectorConfig:
+    def load_from_yaml(cls, path: Union[str, Path]) -> ProjectorConfig:
         """
         Load and validate configuration from a YAML file.
 
@@ -92,6 +91,7 @@ class ProjectorConfig:
             If the YAML file does not exist.
         ConfigError
             If the YAML is malformed or missing required keys/types.
+
         """
         config_path = Path(path)
         raw: Dict[str, Any] = read_yaml(config_path)
@@ -100,7 +100,7 @@ class ProjectorConfig:
         required_keys: Dict[str, type] = {
             'strips': dict,
             'strip_frame_id': str,
-            'virtual_perception': dict
+            'virtual_perception': dict,
         }
         validate_keys(raw, required_keys)
 
@@ -116,7 +116,7 @@ class ProjectorConfig:
         required_vp_keys: Dict[str, Union[type, tuple[type, ...]]] = {
             'frame_id': str,
             'min_distance': (int, float),
-            'max_distance': (int, float)
+            'max_distance': (int, float),
         }
         validate_keys(vp, required_vp_keys)
 

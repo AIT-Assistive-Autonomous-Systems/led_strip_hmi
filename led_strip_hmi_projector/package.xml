@@ -21,8 +21,12 @@
   <depend>led_strip_hmi_msgs</depend>
   <depend>led_strip_hmi_common</depend>
 
+  <!-- Test dependencies -->
+  <test_depend>ament_pytest</test_depend>
+  <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
   <test_depend>pytest</test_depend>
   <test_depend>launch_testing</test_depend>
 

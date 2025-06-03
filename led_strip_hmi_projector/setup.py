@@ -1,6 +1,7 @@
-from setuptools import setup, find_packages
 import glob
 import os
+
+from setuptools import find_packages, setup
 
 package_name = 'led_strip_hmi_projector'
 config_files = glob.glob(os.path.join('config', '*.yaml'))
@@ -34,10 +35,13 @@ setup(
         ],
     },
     data_files=[
-        ('share/ament_index/resource_index/packages',
-            ['ament_index/resource_index/packages/led_strip_hmi_projector']),
+        (
+            'share/ament_index/resource_index/packages',
+            ['ament_index/resource_index/packages/led_strip_hmi_projector'],
+        ),
         ('share/led_strip_hmi_projector', ['package.xml']),
         ('share/led_strip_hmi_projector/config', config_files),
         ('share/led_strip_hmi_projector/launch', launch_files),
     ],
+    tests_require=['pytest', 'pytest-flake8', 'pytest-pep257'],
 )

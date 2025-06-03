@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""
-Drawing utilities for LED strip visualization.
-"""
+"""Drawing utilities for LED strip visualization."""
 
 import math
 from typing import Any, Dict, Optional, Tuple
 
 import cv2
-import numpy as np
+
 from geometry_msgs.msg import Point, PointStamped
+from led_strip_hmi_common.tf_utils import transform_point
+
+import numpy as np
+
 from rclpy.duration import Duration
 from tf2_ros import Buffer
-
-from led_strip_hmi_common.tf_utils import transform_point
 
 
 def draw_dashed_line(
@@ -27,19 +27,36 @@ def draw_dashed_line(
     """
     Draw a dashed line between two points on an OpenCV image.
 
-    Args:
-        img (np.ndarray): BGR image array.
-        pt1 (Tuple[int, int]): Starting pixel coordinates (x1, y1).
-        pt2 (Tuple[int, int]): Ending pixel coordinates (x2, y2).
-        color (Tuple[int, int, int]): BGR color tuple for the dashes.
-        thickness (int): Line thickness in pixels.
-        dash_length (int): Length of each dash segment in pixels.
-        gap_length (int): Length of the gap between dashes in pixels.
+    Specifically, this function segments the line into alternating dash and gap
+    segments and draws them in the given BGR color.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        BGR image array on which to draw.
+    pt1 : Tuple[int, int]
+        Starting pixel coordinates (x1, y1).
+    pt2 : Tuple[int, int]
+        Ending pixel coordinates (x2, y2).
+    color : Tuple[int, int, int]
+        BGR color tuple for the dash segments.
+    thickness : int, optional
+        Line thickness in pixels. Defaults to 1.
+    dash_length : int, optional
+        Length of each dash segment in pixels. Defaults to 10.
+    gap_length : int, optional
+        Length of the gap between dashes in pixels. Defaults to 5.
+
+    Returns
+    -------
+    None
+        This function does not return a value.
+
     """
     x1, y1 = pt1
     x2, y2 = pt2
     dx, dy = x2 - x1, y2 - y1
-    dist = math.hypot(dx, dy)
+    dist = math.hypot(dx, dy)  # Euclidean distance
     if dist < 1e-6:
         return
     angle = math.atan2(dy, dx)
@@ -64,16 +81,27 @@ def world_to_pixel(
     """
     Project 2D world coordinates into image pixel coordinates.
 
-    Maps ±max_distance in world units to the edges of a square image.
+    Maps ±max_distance in world units to the edges of a square image of size
+    img_size × img_size. Points outside the ±max_distance range are clamped
+    out-of-bounds and return None.
 
-    Args:
-        x (float): X coordinate in world space.
-        y (float): Y coordinate in world space.
-        img_size (int): Width and height of the (square) image in pixels.
-        max_distance (float): Maximum world distance corresponding to half the image.
+    Parameters
+    ----------
+    x : float
+        X coordinate in world space.
+    y : float
+        Y coordinate in world space.
+    img_size : int
+        Width and height (in pixels) of the square image.
+    max_distance : float
+        Maximum world distance corresponding to half the image.
 
-    Returns:
-        Optional[Tuple[int, int]]: (px, py) pixel coordinates, or None if out of bounds.
+    Returns
+    -------
+    Optional[Tuple[int, int]]
+        (px, py) pixel coordinates if within bounds, or None if the point
+        is outside ±max_distance.
+
     """
     half = img_size / 2.0
     px = int(half + (x / max_distance) * half)
@@ -83,16 +111,25 @@ def world_to_pixel(
     return px, py
 
 
-def create_canvas(img_size: int, color: Tuple[int,int,int] = (0,0,0)) -> np.ndarray:
+def create_canvas(
+    img_size: int,
+    color: Tuple[int, int, int] = (0, 0, 0),
+) -> np.ndarray:
     """
-    Create a blank BGR image canvas.
+    Create a blank BGR image canvas filled with a background color.
 
-    Args:
-        img_size (int): Width and height of the (square) image in pixels.
-        color (Tuple[int, int, int]): Background BGR color tuple.
+    Parameters
+    ----------
+    img_size : int
+        Width and height (in pixels) of the square image.
+    color : Tuple[int, int, int], optional
+        Background BGR color tuple. Defaults to black (0, 0, 0).
 
-    Returns:
-        np.ndarray: Blank image of shape (img_size, img_size, 3).
+    Returns
+    -------
+    np.ndarray
+        Blank image of shape (img_size, img_size, 3) filled with 'color'.
+
     """
     return np.full((img_size, img_size, 3), color, dtype=np.uint8)
 
@@ -101,23 +138,57 @@ def draw_axes(img: np.ndarray, center_px: int) -> None:
     """
     Draw X and Y coordinate axes on the image.
 
-    Draws a red X-axis to the right and a green Y-axis upward from the center.
+    Draws a red X-axis to the right and a green Y-axis upward from the center
+    point. Labels 'X' and 'Y' are also drawn.
 
-    Args:
-        img (np.ndarray): BGR image array.
-        center_px (int): Pixel index of the image center (both x and y).
+    Parameters
+    ----------
+    img : np.ndarray
+        BGR image array on which to draw axes.
+    center_px : int
+        Pixel index marking the center of the square image.
+
+    Returns
+    -------
+    None
+        This function does not return a value.
+
     """
     arrow = int(center_px * 0.1)
-    cv2.arrowedLine(img, (center_px, center_px),
-                    (center_px + arrow, center_px),
-                    (0, 0, 255), 2, tipLength=0.3)
-    cv2.putText(img, 'X', (center_px + arrow + 5, center_px - 5),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-    cv2.arrowedLine(img, (center_px, center_px),
-                    (center_px, center_px - arrow),
-                    (0, 255, 0), 2, tipLength=0.3)
-    cv2.putText(img, 'Y', (center_px + 5, center_px - arrow - 5),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+    cv2.arrowedLine(
+        img,
+        (center_px, center_px),
+        (center_px + arrow, center_px),
+        (0, 0, 255),
+        2,
+        tipLength=0.3,
+    )
+    cv2.putText(
+        img,
+        'X',
+        (center_px + arrow + 5, center_px - 5),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.5,
+        (0, 0, 255),
+        1,
+    )
+    cv2.arrowedLine(
+        img,
+        (center_px, center_px),
+        (center_px, center_px - arrow),
+        (0, 255, 0),
+        2,
+        tipLength=0.3,
+    )
+    cv2.putText(
+        img,
+        'Y',
+        (center_px + 5, center_px - arrow - 5),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.5,
+        (0, 255, 0),
+        1,
+    )
 
 
 def draw_real_strips(
@@ -134,19 +205,35 @@ def draw_real_strips(
     """
     Overlay the physical LED-strip polygons onto the image.
 
-    Transforms each strip vertex from the strip frame into the virtual-perception
-    frame, projects to pixel, and draws solid white polylines.
+    Each strip vertex is transformed from strip_frame into vp_frame, then
+    projected to pixel coordinates and drawn as a white polyline.
 
-    Args:
-        img (np.ndarray): BGR image array.
-        strips (Dict[str, Any]): YAML-defined strips with 'polygon' lists.
-        tfbuf (Buffer): TF2 buffer for lookups.
-        strip_frame (str): Frame ID of the physical strips.
-        vp_frame (str): Virtual-camera frame ID.
-        stamp: ROS timestamp for TF queries.
-        img_size (int): Debug image size in pixels.
-        max_d (float): Maximum world distance for projection.
-        logger (Any): Node logger for warnings.
+    Parameters
+    ----------
+    img : np.ndarray
+        BGR image array on which to draw strip polygons.
+    strips : Dict[str, Any]
+        Dictionary mapping strip names to polygon vertex lists.
+    tfbuf : Buffer
+        TF2 buffer for transform lookups.
+    strip_frame : str
+        Frame ID of the physical LED strips.
+    vp_frame : str
+        Virtual-camera (perception) frame ID.
+    stamp
+        ROS timestamp used for TF queries.
+    img_size : int
+        Size (in pixels) of the debug image.
+    max_d : float
+        Maximum world distance for projection scaling.
+    logger : Any
+        Logger instance for warning messages.
+
+    Returns
+    -------
+    None
+        This function does not return a value.
+
     """
     for name, s in strips.items():
         pts_img = []
@@ -156,8 +243,9 @@ def draw_real_strips(
             ps.header.stamp = stamp
             ps.point = Point(x=p[0], y=p[1], z=p[2])
 
-            pc = transform_point(tfbuf, ps, vp_frame,
-                                 Duration(seconds=0.1), logger)
+            pc = transform_point(
+                tfbuf, ps, vp_frame, Duration(seconds=0.1), logger
+            )
             if pc is None:
                 continue
             pix = world_to_pixel(pc.x, pc.y, img_size, max_d)
@@ -165,8 +253,13 @@ def draw_real_strips(
                 pts_img.append(pix)
 
         if len(pts_img) >= 2:
-            cv2.polylines(img, [np.array(pts_img, np.int32)],
-                          False, (255, 255, 255), 2)
+            cv2.polylines(
+                img,
+                [np.array(pts_img, np.int32)],
+                isClosed=False,
+                color=(255, 255, 255),
+                thickness=2,
+            )
 
 
 def draw_virtual_strip(
@@ -183,19 +276,35 @@ def draw_virtual_strip(
     """
     Overlay the virtual-strip segments as dashed gray lines.
 
-    Each segment endpoint is transformed into the virtual-perception frame,
-    projected to pixels, then connected with dashes.
+    Each segment's endpoints are transformed into vp_frame, projected to pixels,
+    and connected by dashes via draw_dashed_line().
 
-    Args:
-        img (np.ndarray): BGR image array.
-        virtual_strip (Any): VirtualStrip instance.
-        tfbuf (Buffer): TF2 buffer for lookups.
-        strip_frame (str): Frame ID of the physical strips.
-        vp_frame (str): Virtual-camera frame ID.
-        stamp: ROS timestamp for TF queries.
-        img_size (int): Debug image size in pixels.
-        max_d (float): Maximum world distance for projection.
-        logger (Any): Node logger for warnings.
+    Parameters
+    ----------
+    img : np.ndarray
+        BGR image array on which to draw segments.
+    virtual_strip : Any
+        VirtualStrip instance containing segment geometry.
+    tfbuf : Buffer
+        TF2 buffer for transform lookups.
+    strip_frame : str
+        Frame ID of the physical strips.
+    vp_frame : str
+        Virtual-camera (perception) frame ID.
+    stamp
+        ROS timestamp used for TF queries.
+    img_size : int
+        Size (in pixels) of the debug image.
+    max_d : float
+        Maximum world distance for projection scaling.
+    logger : Any
+        Logger instance for warning/pruning messages.
+
+    Returns
+    -------
+    None
+        This function does not return a value.
+
     """
     for seg in virtual_strip.segments:
         pts = []
@@ -205,8 +314,9 @@ def draw_virtual_strip(
             ps.header.stamp = stamp
             ps.point.x, ps.point.y, ps.point.z = pt3d
 
-            pc = transform_point(tfbuf, ps, vp_frame,
-                                 Duration(seconds=0.1), logger)
+            pc = transform_point(
+                tfbuf, ps, vp_frame, Duration(seconds=0.1), logger
+            )
             if pc is None:
                 break
             pix = world_to_pixel(pc.x, pc.y, img_size, max_d)
@@ -215,14 +325,20 @@ def draw_virtual_strip(
             pts.append(pix)
 
         if len(pts) == 2:
-            draw_dashed_line(img, pts[0], pts[1],
-                             (127, 127, 127), thickness=1,
-                             dash_length=15, gap_length=7)
+            draw_dashed_line(
+                img,
+                pts[0],
+                pts[1],
+                (127, 127, 127),
+                thickness=1,
+                dash_length=15,
+                gap_length=7,
+            )
 
 
 def draw_detections(
     img: np.ndarray,
-    detections,
+    detections,  # List of Detection3D msgs (untyped for brevity)
     tfbuf: Buffer,
     strip_frame: str,
     vp_frame: str,
@@ -235,20 +351,37 @@ def draw_detections(
     """
     Draw raw 3D detections as red circles in the virtual-camera frame.
 
-    Transforms each Detection3D center into the virtual-perception frame,
-    projects to pixels, and draws a filled red circle scaled by bbox size.
+    Each Detection3D center is transformed into vp_frame, projected to pixel
+    coordinates, and drawn with a red circle whose radius is scaled by bbox size.
 
-    Args:
-        img (np.ndarray): BGR image array.
-        detections: List of Detection3D messages.
-        tfbuf (Buffer): TF2 buffer for lookups.
-        strip_frame (str): Frame ID of the physical strips (unused here).
-        vp_frame (str): Virtual-camera frame ID.
-        stamp: ROS timestamp for TF queries.
-        img_size (int): Debug image size in pixels.
-        max_d (float): Maximum world distance for projection.
-        center_px (int): Half the image size (for radius scaling).
-        logger (Any): Node logger for warnings.
+    Parameters
+    ----------
+    img : np.ndarray
+        BGR image array on which to draw detections.
+    detections
+        Sequence of Detection3D messages to visualize.
+    tfbuf : Buffer
+        TF2 buffer for transform lookups.
+    strip_frame : str
+        Frame ID of the physical strips (unused here).
+    vp_frame : str
+        Virtual-camera (perception) frame ID.
+    stamp
+        ROS timestamp used for TF queries.
+    img_size : int
+        Size (in pixels) of the debug image.
+    max_d : float
+        Maximum world distance for projection scaling.
+    center_px : int
+        Half the image size (pixel) used to compute circle radius.
+    logger : Any
+        Logger instance for warning messages.
+
+    Returns
+    -------
+    None
+        This function does not return a value.
+
     """
     for det in detections:
         p_vis = PointStamped()
@@ -256,8 +389,9 @@ def draw_detections(
         p_vis.header.stamp = stamp
         p_vis.point = det.bbox.center.position
 
-        pc = transform_point(tfbuf, p_vis, vp_frame,
-                             Duration(seconds=0.1), logger)
+        pc = transform_point(
+            tfbuf, p_vis, vp_frame, Duration(seconds=0.1), logger
+        )
         if pc is None:
             continue
 

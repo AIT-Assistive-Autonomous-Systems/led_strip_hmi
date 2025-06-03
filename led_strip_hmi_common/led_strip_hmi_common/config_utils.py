@@ -1,6 +1,4 @@
-"""
-Module for YAML configuration utilities: reading and validating config files.
-"""
+"""Module for YAML configuration utilities: reading and validating config files."""
 
 from pathlib import Path
 from typing import Any, Dict
@@ -32,15 +30,16 @@ def read_yaml(path: Path) -> Dict[str, Any]:
         If the file does not exist.
     ConfigError
         If the YAML content is malformed.
+
     """
     if not path.is_file():
-        raise FileNotFoundError(f"Config file not found: {path}")
+        raise FileNotFoundError(f'Config file not found: {path}')
     try:
         with path.open('r') as f:
             return yaml.safe_load(f)
     except yaml.YAMLError as e:
         # Explicitly chain the YAML parsing error for full context
-        raise ConfigError(f"Error parsing YAML file {path}: {e}") from e
+        raise ConfigError(f'Error parsing YAML file {path}: {e}') from e
 
 
 def validate_keys(raw: Dict[str, Any], required_keys: Dict[str, type]) -> None:
@@ -60,6 +59,7 @@ def validate_keys(raw: Dict[str, Any], required_keys: Dict[str, type]) -> None:
         If a required key is missing.
     ConfigError
         If a key is present but has an incorrect type.
+
     """
     for key, expected_type in required_keys.items():
         if key not in raw:
@@ -67,5 +67,5 @@ def validate_keys(raw: Dict[str, Any], required_keys: Dict[str, type]) -> None:
         if not isinstance(raw[key], expected_type):
             raise ConfigError(
                 f"Invalid type for key '{key}': "
-                f"expected {expected_type.__name__}, got {type(raw[key]).__name__}"
+                f'expected {expected_type.__name__}, got {type(raw[key]).__name__}'
             )

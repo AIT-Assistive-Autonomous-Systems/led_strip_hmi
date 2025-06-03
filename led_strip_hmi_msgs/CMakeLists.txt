@@ -11,13 +11,12 @@ find_package(geometry_msgs REQUIRED)
 
 # generate the message interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/LEDStrip.msg"
-  "msg/LEDStripConfig.msg"
+  "msg/LEDStripPhysicalSegment.msg"
+  "msg/LEDStripPhysicalConfig.msg"
+  "msg/LEDStripPhysicalConfigArray.msg"
   "msg/LEDStripEffect.msg"
   "msg/LEDStripProjectionInfo.msg"
   "msg/LEDStripProjectionInfoArray.msg"
-  "msg/VirtualLEDStripSegment.msg"
-  "msg/VirtualPerceptionConfig.msg"
   DEPENDENCIES
     std_msgs
     geometry_msgs
