@@ -17,14 +17,14 @@ import cv2
 from cv_bridge import CvBridge
 from geometry_msgs.msg import PointStamped, TransformStamped
 
+from led_strip_hmi_common.config import ProjectorConfig
+from led_strip_hmi_common.tf_utils import transform_point
+
 from led_strip_hmi_msgs.msg import (
-    LEDStripPhysicalConfigArray, 
+    LEDStripPhysicalConfigArray,
     LEDStripProjectionInfo,
     LEDStripProjectionInfoArray
 )
-
-from led_strip_hmi_common.config import ProjectorConfig
-from led_strip_hmi_common.tf_utils import transform_point
 
 import numpy as np
 
@@ -95,7 +95,8 @@ class ProjectorNode(Node):
         )
 
         # --- Publish configuration once ---
-        cfg_msg = get_physical_strip_config_array_msg(self.cfg.virtual_strip, self.get_clock().now())
+        cfg_msg = get_physical_strip_config_array_msg(
+            self.cfg.virtual_strip, self.get_clock().now())
         self.config_pub.publish(cfg_msg)
 
         # TF buffer & listener

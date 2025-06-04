@@ -7,14 +7,17 @@ for LED strip visualization.
 
 """
 
-from geometry_msgs.msg import Point
-from led_strip_hmi_common.config import ProjectorConfig
-from rclpy.time import Time
 from led_strip_hmi_common.virtual_strip import VirtualStrip
 
-from led_strip_hmi_msgs.msg import LEDStripPhysicalSegment, LEDStripPhysicalConfig, LEDStripPhysicalConfigArray
+from led_strip_hmi_msgs.msg import (LEDStripPhysicalConfig,
+                                    LEDStripPhysicalConfigArray,
+                                    LEDStripPhysicalSegment)
 
-def get_physical_strip_config_array_msg(virtual_strip: VirtualStrip, time: Time) -> LEDStripPhysicalConfigArray:
+from rclpy.time import Time
+
+
+def get_physical_strip_config_array_msg(virtual_strip: VirtualStrip,
+                                        time: Time) -> LEDStripPhysicalConfigArray:
     """
     Convert physical strip configuration to ROS message format.
 
@@ -32,12 +35,14 @@ def get_physical_strip_config_array_msg(virtual_strip: VirtualStrip, time: Time)
         config.physical_segment_id = int(phys_id)
         config.segments = []
         for seg in segments:
+            num_leds = seg.get('num_leds', 0)
+            if num_leds <= 0:
+                continue
             seg_msg = LEDStripPhysicalSegment()
-            seg_msg.num_leds = int(seg['num_leds'])
+            seg_msg.num_leds = num_leds
             seg_msg.start_ratio = float(seg['start'])
             seg_msg.stop_ratio = float(seg['stop'])
             config.segments.append(seg_msg)
         msg.configs.append(config)
 
     return msg
-

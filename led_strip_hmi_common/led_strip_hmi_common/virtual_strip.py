@@ -148,8 +148,10 @@ class VirtualStrip:
                     idx = 0
                     while idx < len(self.segments):
                         seg = self.segments[idx]
-                        start_ratio = seg.start / self.total_length if self.total_length > 0 else 0.0
-                        stop_ratio = (seg.start + seg.length) / self.total_length if self.total_length > 0 else 0.0
+                        start_ratio = seg.start / self.total_length \
+                            if self.total_length > 0 else 0.0
+                        stop_ratio = (seg.start + seg.length) / \
+                            self.total_length if self.total_length > 0 else 0.0
                         if seg.gap:
                             segments.append({
                                 'name': seg.strip,
@@ -164,7 +166,8 @@ class VirtualStrip:
                             seg_start = seg.start
                             seg_stop = seg.start + seg.length
                             j = idx + 1
-                            while j < len(self.segments) and not self.segments[j].gap and self.segments[j].strip == seg.strip:
+                            while j < len(self.segments) and not self.segments[j].gap \
+                                    and self.segments[j].strip == seg.strip:
                                 total_length += self.segments[j].length
                                 seg_stop += self.segments[j].length
                                 j += 1
@@ -179,7 +182,6 @@ class VirtualStrip:
                         else:
                             idx += 1
                     self.physical_strips[phys_id] = segments  # use int key
-
 
     def __str__(self) -> str:
         """Return summary of the virtual strip."""
