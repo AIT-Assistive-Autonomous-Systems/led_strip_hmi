@@ -386,9 +386,9 @@ class ProjectorNode(Node):
             e.header.frame_id = self.cfg.strip_frame
             e.detection_id = i
 
-            e.peak = ratios.peak
-            e.start = ratios.start
-            e.stop = ratios.stop
+            e.peak = float(ratios.peak) if ratios.peak is not None else 0.0
+            e.start = float(ratios.start) if ratios.start is not None else 0.0
+            e.stop = float(ratios.stop) if ratios.stop is not None else 0.0
             e.distance = float(dist)
             idx_arr.projection_infos.append(e)
         self.idx_pub.publish(idx_arr)
