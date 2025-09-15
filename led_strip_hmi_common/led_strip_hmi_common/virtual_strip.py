@@ -191,9 +191,7 @@ class VirtualStrip:
         ]
         for strip in self.strips.values():
             lines.append(
-                f'  • {strip.name}: num_leds={strip.num_leds}, control_points={
-                    len(strip.polygon)
-                }'
+                f'  • {strip.name}: num_leds={strip.num_leds}, control_points={len(strip.polygon)}'
             )
         return '\n'.join(lines)
 
