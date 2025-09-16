@@ -200,8 +200,8 @@ def build_dynamic_markers(
         dratio = np.clip(dratio, 0, 1)
         color = np.array(colormap(dratio))
 
-        def circular_distance(point1, point2, length):
-            return min((point1 - point2) % length, (point2 - point1) % length)
+        def forward_distance(point1, point2, length):
+            return (point2 - point1) % length   # number of LEDs in the forward slice
 
         def set_leds(leds_rgba, color, alpha, start, stop):
             # left wrap
@@ -215,16 +215,17 @@ def build_dynamic_markers(
             leds_rgba[start:stop, :] = color
             leds_rgba[start:stop, 3] = alpha[nalpha:]
 
-        nleft = circular_distance(ipeak, ileft, len(leds_rgba))
-        if nleft > 1:
+        nleft = forward_distance(ileft, ipeak, len(leds_rgba))
+        if nleft > 0:
             xl = np.linspace(start, entry.peak, nleft + 1, endpoint=True)
-            gl = gaussian(xl, entry.peak, dleft / 4)[:nleft]
+            gl = gaussian(xl, entry.peak, dleft / 4)[:-1]   # length == nleft
             set_leds(leds_rgba, color, gl, ileft, ipeak)
 
-        nright = circular_distance(ipeak, iright, len(leds_rgba)) + 1
-        xr = np.linspace(entry.peak, stop, nright, endpoint=True)
-        gr = gaussian(xr, entry.peak, dright / 4)
-        set_leds(leds_rgba, color, gr, ipeak, iright + 1)
+        nright = forward_distance(ipeak, iright, len(leds_rgba))
+        if nright > 0:
+            xr = np.linspace(entry.peak, stop, nright + 1, endpoint=True)
+            gr = gaussian(xr, entry.peak, dright / 4)[1:]   # length == nright
+            set_leds(leds_rgba, color, gr, ipeak, iright)
 
     leds_rgba = np.clip(leds_rgba, 0.0, 1.0)
 
