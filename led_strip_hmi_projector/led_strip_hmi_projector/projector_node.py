@@ -28,6 +28,7 @@ from led_strip_hmi_msgs.msg import (
 
 import numpy as np
 
+import copy
 import rclpy
 from rclpy.duration import Duration
 from rclpy.node import Node
@@ -35,6 +36,7 @@ from rclpy.qos import DurabilityPolicy, QoSProfile
 
 from sensor_msgs.msg import Image, LaserScan
 from tf2_ros import Buffer, StaticTransformBroadcaster, TransformListener
+from tf2_geometry_msgs import do_transform_pose
 from vision_msgs.msg import Detection3DArray
 
 from .adapters import get_physical_strip_config_array_msg
@@ -94,10 +96,8 @@ class ProjectorNode(Node):
             QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL),
         )
 
-        # --- Publish configuration once ---
-        cfg_msg = get_physical_strip_config_array_msg(
-            self.cfg.virtual_strip, self.get_clock().now())
-        self.config_pub.publish(cfg_msg)
+        # --- Publish configuration ---
+        self._cfg_timer = self.create_timer(1.0, self._publish_config)
 
         # TF buffer & listener
         self.tfbuf = Buffer()
@@ -132,7 +132,7 @@ class ProjectorNode(Node):
             LEDStripProjectionInfoArray, 'led_indices', 10
         )
         self.sub = self.create_subscription(
-            Detection3DArray, 'detection_vision_3d', self.cb_detections, 10
+            Detection3DArray, 'detection_vision_3d', self.cb_detections, 1
         )
 
         self.sub_scan = self.create_subscription(
@@ -143,6 +143,11 @@ class ProjectorNode(Node):
         )
 
         self._log_configuration()
+
+    def _publish_config(self) -> None:
+        cfg_msg = get_physical_strip_config_array_msg(
+            self.cfg.virtual_strip, self.get_clock().now())
+        self.config_pub.publish(cfg_msg)
 
     def _log_configuration(self) -> None:
         """
@@ -364,8 +369,46 @@ class ProjectorNode(Node):
         if cam_strip is None:
             return
 
+        try:
+            tf_msg = self.tfbuf.lookup_transform(
+                self.cfg.strip_frame,
+                msg.header.frame_id,
+                msg.header.stamp,
+                timeout=Duration(seconds=0.1),
+            )
+            q = tf_msg.transform.rotation
+            # Rotation matrix from quaternion
+            R = np.array([
+                [1 - 2*(q.y*q.y + q.z*q.z), 2*(q.x*q.y - q.z*q.w),      2*(q.x*q.z + q.y*q.w)],
+                [2*(q.x*q.y + q.z*q.w),     1 - 2*(q.x*q.x + q.z*q.z),  2*(q.y*q.z - q.x*q.w)],
+                [2*(q.x*q.z - q.y*q.w),     2*(q.y*q.z + q.x*q.w),      1 - 2*(q.x*q.x + q.y*q.y)]
+            ], dtype=float)
+        except Exception as ex:
+            self.get_logger().warn(
+                f"TF lookup failed {msg.header.frame_id}->{self.cfg.strip_frame}: {ex}")
+            return
+
+        detections_t = copy.deepcopy(msg)
+        detections_t.header.frame_id = self.cfg.strip_frame
         detection_results = []
-        for det in msg.detections:
+        for det in detections_t.detections:
+
+            # Transfrom detections into strip frame
+            pose_t = do_transform_pose(det.bbox.center, tf_msg)
+            det.bbox.center = pose_t
+            det.header.frame_id = self.cfg.strip_frame
+
+            # Rotate BB into AABB
+            s = np.array([
+                det.bbox.size.x,
+                det.bbox.size.y,
+                det.bbox.size.z
+            ], dtype=float)
+            s_t = np.abs(R) @ s
+            det.bbox.size.x = float(s_t[0])
+            det.bbox.size.y = float(s_t[1])
+            det.bbox.size.z = float(s_t[2])
+
             ratios, dist = map_detection(
                 det,
                 self.cfg.virtual_strip,
@@ -386,15 +429,15 @@ class ProjectorNode(Node):
             e.header.frame_id = self.cfg.strip_frame
             e.detection_id = i
 
-            e.peak = float(ratios.peak) if ratios.peak is not None else 0.0
-            e.start = float(ratios.start) if ratios.start is not None else 0.0
-            e.stop = float(ratios.stop) if ratios.stop is not None else 0.0
+            e.peak = ratios.peak
+            e.start = ratios.start
+            e.stop = ratios.stop
             e.distance = float(dist)
             idx_arr.projection_infos.append(e)
         self.idx_pub.publish(idx_arr)
 
         if self.debug_image:
-            self.publish_debug_image(msg, detection_results)
+            self.publish_debug_image(detections_t, detection_results)
 
 
 def main(args=None) -> None:
