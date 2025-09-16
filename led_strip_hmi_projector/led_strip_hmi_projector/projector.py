@@ -109,10 +109,8 @@ def map_detection(
     if all(v is None for v in (gde, gds, gdp)):
         return None, d
 
-    if gde is None and gds is not None:
-        gde = float(round(gds))
-    if gds is None and gde is not None:
-        gds = float(round(gde))
+    gde = float(round(gdp if gdp is not None else gds)) if gde is None else gde
+    gds = float(round(gdp if gdp is not None else gde)) if gds is None else gds
     gdp = float(round((gds + gde) / 2.0)) if gdp is None else gdp
 
     return DetectionRatios(start=gds, peak=gdp, stop=gde), d
