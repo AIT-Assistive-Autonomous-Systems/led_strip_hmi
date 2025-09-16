@@ -106,5 +106,13 @@ def map_detection(
         ds_x - n[0] * half_w, ds_y - n[1] * half_w, origin=origin
     )
 
-    ratios = DetectionRatios(start=gds, peak=gdp, stop=gde)
-    return (ratios or None), d
+    if all(v is None for v in (gde, gds, gdp)):
+        return None, d
+
+    if gde is None and gds is not None:
+        gde = float(round(gds))
+    if gds is None and gde is not None:
+        gds = float(round(gde))
+    gdp = float(round((gds + gde) / 2.0)) if gdp is None else gdp
+
+    return DetectionRatios(start=gds, peak=gdp, stop=gde), d
