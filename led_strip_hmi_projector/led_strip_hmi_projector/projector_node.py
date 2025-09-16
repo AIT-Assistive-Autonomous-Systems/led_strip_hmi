@@ -96,10 +96,8 @@ class ProjectorNode(Node):
             QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL),
         )
 
-        # --- Publish configuration once ---
-        cfg_msg = get_physical_strip_config_array_msg(
-            self.cfg.virtual_strip, self.get_clock().now())
-        self.config_pub.publish(cfg_msg)
+        # --- Publish configuration ---
+        self._cfg_timer = self.create_timer(1.0, self._publish_config)
 
         # TF buffer & listener
         self.tfbuf = Buffer()
@@ -134,7 +132,7 @@ class ProjectorNode(Node):
             LEDStripProjectionInfoArray, 'led_indices', 10
         )
         self.sub = self.create_subscription(
-            Detection3DArray, 'detection_vision_3d', self.cb_detections, 10
+            Detection3DArray, 'detection_vision_3d', self.cb_detections, 1
         )
 
         self.sub_scan = self.create_subscription(
@@ -145,6 +143,11 @@ class ProjectorNode(Node):
         )
 
         self._log_configuration()
+
+    def _publish_config(self) -> None:
+        cfg_msg = get_physical_strip_config_array_msg(
+            self.cfg.virtual_strip, self.get_clock().now())
+        self.config_pub.publish(cfg_msg)
 
     def _log_configuration(self) -> None:
         """
